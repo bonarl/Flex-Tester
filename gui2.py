@@ -18,13 +18,20 @@ from gi.repository import Gtk
 from board_functions import *
 import sqlite3 as lite
 import datetime
+import serial
 
 
 class MyApp(object):
 
     def __init__(self):
         #connect to microcontroller
-        self.board = expander('/dev/ttyUSB0', 9600)
+        try:
+            ports = listSerialPorts()
+            self.board = expander(str(ports[0]), 9600)
+            print('connected to board on COM port %s' %(ports[0]))
+            print('board id is %s' %(self.board.i_d()))
+        except:
+            print('no board connected')
         """
         board.clear()
         print(board.errors())
@@ -37,8 +44,7 @@ class MyApp(object):
         self.db = lite.connect('sql_db')
         self.c = self.db.cursor()
         try:
-            self.c.execute('CREATE TABLE networks(id TEXT unique, timestamp TEXT, user TEXT, no_connectors INTEGER, no_pins INTEGER, network TEXT)')
-            
+            self.c.execute('CREATE TABLE networks(id TEXT unique, timestamp TEXT, user TEXT, no_connectors INTEGER, no_pins INTEGER, network TEXT)')            
         except:
             pass
             
@@ -54,6 +60,7 @@ class MyApp(object):
         self.test_button = go('test_button')
         self.learn_button = go('learn_button')
         self.log_button = go('log_button')
+        self.reconnect_button = go('reconnect_board')
         
         #create liststore of network names
         #needs to draw network names from database
@@ -88,7 +95,7 @@ class MyApp(object):
     def test(self, test_button):
         print("test")
         self.board.clear()
-        print(self.board.i_d())
+        print(self.board.scan())
         tree_iter = self.net_combo.get_active_iter()
         model = self.net_combo.get_model()
         row_id, name = model[tree_iter][:2]
@@ -135,24 +142,43 @@ class MyApp(object):
         user_ID_entry = self.builder.get_object("user_ID_entry")
         tree_iter = self.net_combo.get_active_iter()
         model = self.net_combo.get_model()
-        
-        
         row_id, net_ID = model[tree_iter][:2]
         tape_ID = Gtk.Entry.get_text(tape_ID_entry)
         user_ID = Gtk.Entry.get_text(user_ID_entry)
         timestamp = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-        errors = self.board.report_fails()
-        scan = self.board.report_all()
-        print(timestamp, user_ID, net_ID, errors, scan)
-        sql = "CREATE TABLE IF NOT EXISTS [" +str(tape_ID)+ "](timestamp TEXT, user TEXT, network TEXT, errors TEXT, scan TEXT)"
-        print(sql)
-        self.c.execute(sql)
+        scan = self.board.scan() 
+        print(scan)       
+        #get errors by comparing scan with net scan in database
+        self.c.execute('SELECT network FROM networks WHERE id=?', (net_ID,))        
+        db_net = self.c.fetchone()
+        if scan != db_net:
+            print('errors found')
+            errors = 'some'
+        else:
+            print('no errors found')
+            errors = 'none'
+        #create a table for tape ID in database if there isnt one already and insert dated test results as row in database
+        self.c.execute("CREATE TABLE IF NOT EXISTS [" +str(tape_ID)+ "](timestamp TEXT, user TEXT, network TEXT, errors TEXT, scan TEXT)")
         self.db.commit()
         self.c.execute('INSERT INTO ['+str(tape_ID)+'](timestamp, user, network, errors, scan) VALUES(?,?,?,?,?)',(timestamp, user_ID, net_ID, errors, scan))
         print(tape_ID)
-        #save results to database under network name, tape ID, etc
-        #check tapeID not already in database
-         
+        
+        
+    def reconnect(self, reconnect_button):
+        ports = listSerialPorts()
+        print(ports)
+        try:
+            self.board.serial.close()
+        except:
+            pass
+        try:
+            self.board = expander(str(ports[0]), 9600)
+            print('connected to board on COM port %s' %(ports[0]))
+            print('board id is %s' %(self.board.i_d()))
+            print('if no board ID is displayed try reconnect')
+            
+        except:
+            print('connection failed on COM port %s, try plug board in again' % (ports[0]))
 if __name__ == '__main__':
     try:
         

@@ -80,10 +80,11 @@
             <property name="layout_style">expand</property>
             <child>
               <object class="GtkButton" id="test_button">
-                <property name="label">Quick Test</property>
+                <property name="label">gtk-media-play</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="use_stock">True</property>
                 <signal name="clicked" handler="test" swapped="no"/>
               </object>
               <packing>
@@ -94,10 +95,11 @@
             </child>
             <child>
               <object class="GtkButton" id="log_button">
-                <property name="label">Test and Log</property>
+                <property name="label">gtk-save</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="use_stock">True</property>
                 <signal name="clicked" handler="log" swapped="no"/>
               </object>
               <packing>
@@ -107,16 +109,20 @@
               </packing>
             </child>
             <child>
+              <placeholder/>
+            </child>
+            <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkButton" id="learn_button">
-                    <property name="label">Learn Network</property>
+                    <property name="label">gtk-save-as</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="use_stock">True</property>
                     <signal name="clicked" handler="learn" swapped="no"/>
                   </object>
                   <packing>
