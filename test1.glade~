@@ -14,6 +14,107 @@
         <property name="orientation">vertical</property>
         <property name="baseline_position">top</property>
         <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkComboBox" id="network_list_combo1">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButtonBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="layout_style">start</property>
+                <child>
+                  <object class="GtkButton" id="open_net_button">
+                    <property name="label" translatable="yes">View</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="open_net" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkEntry" id="open_entry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="text" translatable="yes">Enter ID of flex-tape to view stored results</property>
+                <property name="overwrite_mode">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButtonBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="layout_style">start</property>
+                <child>
+                  <object class="GtkButton" id="open_button">
+                    <property name="label">gtk-open</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_stock">True</property>
+                    <signal name="clicked" handler="open_results" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkButtonBox">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -36,41 +137,46 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">0</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
-          <object class="GtkStatusbar">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_left">10</property>
-            <property name="margin_right">10</property>
-            <property name="margin_start">10</property>
-            <property name="margin_end">10</property>
-            <property name="margin_top">6</property>
-            <property name="margin_bottom">6</property>
-            <property name="orientation">vertical</property>
-            <property name="spacing">2</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkTextView">
+          <object class="GtkScrolledWindow" id="scroll">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="editable">False</property>
-            <property name="cursor_visible">False</property>
+            <property name="vscrollbar_policy">always</property>
+            <property name="shadow_type">in</property>
+            <child>
+              <object class="GtkViewport">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkTextView" id="display">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="editable">False</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="pack_type">end</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -80,11 +186,10 @@
             <property name="layout_style">expand</property>
             <child>
               <object class="GtkButton" id="test_button">
-                <property name="label">gtk-media-play</property>
+                <property name="label">Quick Test</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
                 <signal name="clicked" handler="test" swapped="no"/>
               </object>
               <packing>
@@ -95,11 +200,10 @@
             </child>
             <child>
               <object class="GtkButton" id="log_button">
-                <property name="label">gtk-save</property>
+                <property name="label">Test and Log</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
                 <signal name="clicked" handler="log" swapped="no"/>
               </object>
               <packing>
@@ -109,20 +213,16 @@
               </packing>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkButton" id="learn_button">
-                    <property name="label">gtk-save-as</property>
+                    <property name="label">Learn Network</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="use_stock">True</property>
                     <signal name="clicked" handler="learn" swapped="no"/>
                   </object>
                   <packing>
@@ -136,6 +236,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="text" translatable="yes">Enter New Network ID</property>
+                    <property name="overwrite_mode">True</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -153,6 +254,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="text" translatable="yes">Connectors</property>
+                        <property name="overwrite_mode">True</property>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -165,6 +267,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="text" translatable="yes">Pins</property>
+                        <property name="overwrite_mode">True</property>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -192,7 +295,7 @@
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="pack_type">end</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -205,6 +308,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="text" translatable="yes">Enter Your Name</property>
+                <property name="overwrite_mode">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -217,6 +321,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="text" translatable="yes">Enter Flex Tape ID</property>
+                <property name="overwrite_mode">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
