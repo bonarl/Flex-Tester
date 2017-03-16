@@ -118,6 +118,7 @@ class MyApp(object):
         adj.set_value(adj.get_upper() - adj.get_page_size())
         
     def test(self, test_button):
+        start = time.time()
         display(self, '\n')
         connectors_entry = self.builder.get_object("connectors_entry")
         pins_entry = self.builder.get_object("pins_entry")
@@ -126,23 +127,26 @@ class MyApp(object):
         row_id, name = model[tree_iter][:2]
         connectors = Gtk.Entry.get_text(connectors_entry)
         pins = Gtk.Entry.get_text(pins_entry)  
-        display(self, "Netname = %s" % (name))
-        self.board.set_connectors(connectors)
-        self.board.set_pins(pins)
-        scan = self.board.scan_results()
-        displayl(self,scan)
-        self.c.execute('SELECT network FROM networks WHERE id=?', (name,))        
-        db_net = pickle.loads(self.c.fetchall()[0][0])
-        print(db_net)
-        print(scan)
-        if scan != db_net:
-            display(self,'errors found')
+        default_errors = defaults(self, 'yep')
+        if default_errors[4] == 0:
+            display(self, 'Enter number of connectors and pins to quick test')
         else:
-            display(self,'no errors found')
-        #get results
-        #compare with stored net
-        #display results in info box
-        
+            display(self, "Netname = %s" % (name))
+            self.board.set_connectors(connectors)
+            self.board.set_pins(pins)
+            scan = self.board.scan_results()
+            displayl(self,scan)
+            self.c.execute('SELECT network FROM networks WHERE id=?', (name,))        
+            db_net = pickle.loads(self.c.fetchall()[0][0])
+            
+            if scan != db_net:
+                display(self,'errors found')
+            else:
+                display(self,'no errors found')
+            #get results
+            #compare with stored net
+            #display results in info box
+            display(self, (time.time() - start))
         
     def learn(self, learn_button):
         display(self, '\n')

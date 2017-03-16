@@ -30,6 +30,7 @@ def defaults(app, net_select):
     learn_errors = []
     learn_ok = 1
     log_ok = 1
+    test_ok = 1
     if user_ID == 'Enter Your Name' or net_ID == 'Enter New Network ID' or connectors == 'Connectors' or pins == 'Pins' or tape_ID == 'Enter Flex Tape ID' or net_select_ID == 'Select Tape Network ID':
         if user_ID == 'Enter Your Name':
             log_errors.append('Please enter your name to save results ')
@@ -42,16 +43,18 @@ def defaults(app, net_select):
         if connectors == 'Connectors':
             learn_errors.append('Please enter number of connectors ')
             learn_ok = 0
+            test_ok = 0
         if pins == 'Pins':
             learn_errors.append('Please enter number of pins per connector ')
             learn_ok = 0
+            test_ok =0
         if tape_ID == 'Enter Flex Tape ID':
             log_errors.append('Please enter flex tape id to save test results ')
             log_ok = 0
         if net_select_ID == 'Select Tape Network ID':
             log_errors.append('Please select a network from database to test against, or add new network to database ')
             log_ok = 0
-        return(learn_errors, log_errors, learn_ok, log_ok)
+        return(learn_errors, log_errors, learn_ok, log_ok, test_ok)
     else: 
         return(1, 1, 1, 1)
     
