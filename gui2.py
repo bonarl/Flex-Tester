@@ -20,6 +20,7 @@ from app_tools import *
 import sqlite3 as lite
 import datetime
 import serial
+import pickle
 
 
 
@@ -28,19 +29,11 @@ class MyApp(object):
 
     def __init__(self):
         
-        """
-        board.clear()
-        print(board.errors())
-        board.set_connectors(10)
-        print(board.errors())
-        print(board.scan_results())
-        print(board.errors())
-        """
         #connect to database/create database if not present
         self.db = lite.connect('sql_db')
         self.c = self.db.cursor()
         try:
-            self.c.execute('CREATE TABLE networks(id TEXT unique, timestamp TEXT, user TEXT, no_connectors INTEGER, no_pins INTEGER, network TEXT)')            
+            self.c.execute('CREATE TABLE networks(id TEXT unique, timestamp TEXT, user TEXT, no_connectors INTEGER, no_pins INTEGER, network BLOB)')            
         except:
             pass
             
@@ -63,14 +56,7 @@ class MyApp(object):
         self.scrolled_window = go('scroll')
         self.text_view.connect("size-allocate", self.autoscroll)
         
-        #connect to microcontroller
-        try:
-            ports = listSerialPorts()
-            self.board = expander(str(ports[0]), 9600)
-            display(self,'connected to board on COM port %s' %(ports[0]))
-            display(self,'board id is %s' %(self.board.i_d()))
-        except:
-            display(self,'no board connected')
+        
         
         #create liststore of network names
         #needs to draw network names from database
@@ -109,6 +95,18 @@ class MyApp(object):
         # Everything is ready
         self.window.show()
     
+
+        #connect to microcontroller
+        try:
+            ports = listSerialPorts()
+            if len(ports) > 1:
+                self.board = expander(str(ports[0]), 9600)           
+                display(self,'connected to board on COM port %s' %(ports[0]))
+                display(self,'board id is %s' %(self.board.i_d()))
+
+        except:
+            display(self,'no board connected')
+ 
     def onDeleteWindow(self, widget):
         self.db.commit()
         self.db.close()
@@ -120,15 +118,21 @@ class MyApp(object):
         adj.set_value(adj.get_upper() - adj.get_page_size())
         
     def test(self, test_button):
-        self.board.clear()     
+        display(self, '\n')
+        connectors_entry = self.builder.get_object("connectors_entry")
+        pins_entry = self.builder.get_object("pins_entry")
         tree_iter = self.net_combo.get_active_iter()
         model = self.net_combo.get_model()
         row_id, name = model[tree_iter][:2]
+        connectors = Gtk.Entry.get_text(connectors_entry)
+        pins = Gtk.Entry.get_text(pins_entry)  
         display(self, "Netname = %s" % (name))
-        scan = self.board.scan()
-        display(self,scan)
+        self.board.set_connectors(connectors)
+        self.board.set_pins(pins)
+        scan = self.board.scan_results()
+        displayl(self,scan)
         self.c.execute('SELECT network FROM networks WHERE id=?', (name,))        
-        db_net = self.c.fetchone()[0]
+        db_net = pickle.loads(self.c.fetchall()[0][0])
         print(db_net)
         print(scan)
         if scan != db_net:
@@ -141,6 +145,7 @@ class MyApp(object):
         
         
     def learn(self, learn_button):
+        display(self, '\n')
         net_ID_entry = self.builder.get_object("net_ID_entry") 
         user_ID_entry = self.builder.get_object("user_ID_entry")
         connectors_entry = self.builder.get_object("connectors_entry")
@@ -150,33 +155,42 @@ class MyApp(object):
         user_ID = Gtk.Entry.get_text(user_ID_entry)
         connectors = Gtk.Entry.get_text(connectors_entry)
         pins = Gtk.Entry.get_text(pins_entry)   
-        timestamp = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-        network = self.board.scan()
+        timestamp = '{:%d-%m-%Y %H:%M:%S}'.format(datetime.datetime.now())
+        
         default_errors = defaults(self, 'Select Tape Network ID')
         #first check all required info has been added to save
         if default_errors[2] == 0:      
             displayl(self,default_errors[0])
         else:    
-            display(self,net_ID, user_ID, connectors, pins, timestamp, network)
+            
             ###check net_ID not in database already
             self.c.execute('SELECT EXISTS(SELECT 1 FROM networks WHERE id = ?)',(net_ID,))
             
             if self.c.fetchone()[0]==1:
                 display(self,'network already found with name  %s'%(net_ID))      
             else:        
-            
+                #update board with pi/connector info and scan
+                self.board.set_connectors(connectors)
+                self.board.set_pins(pins)
+                network = self.board.scan_results()
+
+                display(self,net_ID, user_ID, connectors, pins, timestamp)
+                displayl(network)
                 #add network
-                self.c.execute('INSERT INTO networks(id, timestamp, user, no_connectors, no_pins, network) VALUES(?,?,?,?,?,?)', (net_ID, timestamp, user_ID, connectors, pins, network))
+                self.c.execute('INSERT INTO networks(id, timestamp, user, no_connectors, no_pins, network) VALUES(?,?,?,?,?,?)', (net_ID, timestamp, user_ID, connectors, pins, pickle.dumps(network)))
                 self.db.commit()
                 display(self,'added to database')
                 #update liststore and combobox with new network name taken 
-                self.net_liststore.append([4, str(net_ID)])
+                self.net_liststore.append([1, str(net_ID)])
+                self.net_liststore1.append([1, str(net_ID)])
+                
             
             #run program and learn network
             #update database with learned network
             #(option to delete nets in database)
        
     def log(self, log_button):
+        display(self, '\n')
         tape_ID_entry = self.builder.get_object("tape_ID_entry")
         user_ID_entry = self.builder.get_object("user_ID_entry")
         tree_iter = self.net_combo.get_active_iter()
@@ -190,12 +204,12 @@ class MyApp(object):
         if default_errors[3] == 0:      
             displayl(self,default_errors[1])
         else:
-            scan = self.board.scan() 
-            display(self,scan)       
+            scan = self.board.scan_results() 
+            displayl(self,scan)       
             #get errors by comparing scan with net scan in database
             self.c.execute('SELECT network FROM networks WHERE id=?', (net_ID,))        
-            db_net = self.c.fetchone()[0]
-            display(self, db_net)
+            db_net = pickle.loads(self.c.fetchall()[0][0])
+            
             if scan != db_net:
                 display(self,'errors found')
                 errors = 'no'
@@ -203,29 +217,35 @@ class MyApp(object):
                 display(self,'no errors found')
                 errors = 'yes'
             #create a table for tape ID in database if there isnt one already and insert dated test results as row in database
-            self.c.execute("CREATE TABLE IF NOT EXISTS [" +str(tape_ID)+ "](timestamp TEXT, user TEXT, network TEXT, errors TEXT, scan TEXT)")
+            self.c.execute("CREATE TABLE IF NOT EXISTS [" +str(tape_ID)+ "](timestamp TEXT, user TEXT, network TEXT, errors TEXT, scan BLOB)")
+            
+            self.c.execute('INSERT INTO ['+str(tape_ID)+'](timestamp, user, network, errors, scan) VALUES(?,?,?,?,?)',(timestamp, user_ID, net_ID, errors, pickle.dumps(scan)))
             self.db.commit()
-            self.c.execute('INSERT INTO ['+str(tape_ID)+'](timestamp, user, network, errors, scan) VALUES(?,?,?,?,?)',(timestamp, user_ID, net_ID, errors, scan))
             display(self,tape_ID)
         
         
     def reconnect(self, reconnect_button):
+        display(self, '\n')
         ports = listSerialPorts()
         displayl(self,ports)
-        try:
-            self.board.serial.close()
-        except:
-            pass
-        try:
-            self.board = expander(str(ports[0]), 9600)
-            display(self,'connected to board on COM port %s' %(ports[0]))
-            display(self,'board id is %s' %(self.board.i_d()))
-            display(self,'if no board ID is displayed try reconnect')
-            
-        except:
-            display(self,'connection failed on COM port %s, try plug board in again' % (ports[0]))
+        if len(ports) >1:
+            try:
+                self.board.serial.close()
+            except:
+                pass
+            try:
+                self.board = expander(str(ports[0]), 9600)
+                display(self,'connected to board on COM port %s' %(ports[0]))
+                display(self,'board id is %s' %(self.board.i_d()))
+                display(self,'if incorrect board ID is displayed try unplug board and reconnect, connects automatically to last COM port plugged in')
+                
+            except:
+                display(self,'connection failed on COM port %s, try plug board in again' % (ports[0]))
+        else:
+            display(self, 'no board connected')
             
     def open_results(self, open_button):
+        display(self, '\n')
         open_entry = self.builder.get_object('open_entry')
         filename = Gtk.Entry.get_text(open_entry)
         try:
@@ -236,12 +256,15 @@ class MyApp(object):
             display(self, 'No results found in database for tape ID given')
             
     def open_net(self, open_net_button):
+        display(self, '\n')
         tree_iter = self.net_combo1.get_active_iter()
         model = self.net_combo1.get_model()
         row_id, netname = model[tree_iter][:2]       
         try:
             self.c.execute('SELECT network FROM networks WHERE id=?', (netname,))
-            displayl(self, self.c.fetchall()[0])
+            string_net = self.c.fetchall()
+            print(pickle.loads(string_net[0][0]))
+            displayl(self, pickle.loads(string_net[0][0]))
         except:
             pass
                 

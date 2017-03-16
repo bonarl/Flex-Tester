@@ -1,7 +1,18 @@
 import sys
 import glob
 import serial
+import string
 
+class Del:
+  def __init__(self, keep=string.digits):
+    self.comp = dict((ord(c),c) for c in keep)
+  def __getitem__(self, k):
+    return self.comp.get(k)
+
+DD = Del()
+
+x='aaa12333bb445bb54b5b52'
+x.translate(DD)
 
 def listSerialPorts():
     """ Lists serial port names
@@ -31,6 +42,7 @@ def listSerialPorts():
             pass
     return result
     
+
     
 def enc(string):
     return(string.encode())
@@ -39,11 +51,15 @@ print(listSerialPorts())
 coms = listSerialPorts()
 class expander():
     def __init__(self, port= "/dev/ttyUSB0", baudrate = 9600):
-        self.ser = serial.Serial(port, baudrate, timeout=None)
+        self.ser = serial.Serial(port, baudrate, timeout=1)
         self.ser.write(enc('INIT\n'))
+        self.ser.write(enc('*CLS\n'))
+        self.ser.flush()
+        
              
     def clear(self): 
-        self.ser.write(enc('*CLS\n'))    
+        self.ser.write(enc('*CLS\n'))  
+        return(self.ser.readline())
         #clears error register on board
     def i_d(self):
         self.ser.write(enc('*IDN?\n'))
@@ -55,13 +71,21 @@ class expander():
         #returns any errors on board, returning 0 if none       
     def set_connectors(self, cons):
         self.ser.write(enc('CAB:CONS %s \n' % (cons)))
+        return(self.ser.readline())
         #specify number of connections on board     
     def ask_connectors(self):
         self.ser.write(enc('CAB:CONS?\n'))
         return(self.ser.readline())
         #ask how many connectors on board
     def set_pins(self, pins):
-        self.ser.write(enc('CAB:PINS 40\n'))
+        self.ser.flush()
+        self.ser.write(enc('CAB:CONS?\n'))
+        cons_string = str(self.ser.readline())
+        cons = int(cons_string.translate(DD))
+        for j in range(cons):
+            self.ser.write(enc('CAB:PINS:J%s %s \n' % (j+1, pins)))
+        return(self.ser.readline())
+            
         #set number of pins on board
     def ask_pins(self):
         self.ser.write(enc('CAB:PINS?\n'))
@@ -69,35 +93,53 @@ class expander():
         #ask number of pins on board, returns list of connectors with pin numbers
     def scan(self):
         self.ser.write(enc('CAB:SCAN\n'))    
+        return(self.ser.readline())
         #scan cable connections   
     def scan_length(self):
         self.ser.write(enc('CAB:SCAN\n'))
+        print(self.ser.readline())
         self.ser.write(enc('CAB:UPLOAD:LEN?\n'))
         return(self.ser.readline())
         #scans connections and returns length of scan of connections table        
     def scan_results(self):
         self.ser.write(enc('CAB:SCAN\n'))
+        print(self.ser.readline())
         self.ser.write(enc('CAB:UPLOAD\n'))
-        return(self.ser.readline())
+        results = []
+        working = True
+        while working == True:
+            result = self.ser.readline().decode('utf-8').strip()
+            if result != '<END>':
+                results.append(result)
+            else:
+                working = False
+        return(results)
         #scans and returns connections table        
+
     def test(self):
         self.ser.write(enc('CAB:TEST:RUN\n')) 
+        while True:
+            print(self.ser.readline())
         #test cable       
     def report_all(self):
         self.ser.write(enc('CAB:TEST:RUN\n'))
+        print(self.ser.readline())
         self.ser.write(enc('CAB:TEST:REPORT[ALL]\n'))
         return(self.ser.readline())
         #test and report all connections from test        
     def report_fails(self):
         self.ser.write(enc('CAB:TEST:RUN\n'))
+        print(self.ser.readline())
         self.ser.write(enc('CAB:TEST:REPORT[FAILS]\n'))
-        return(self.ser.readline())
+        while True:
+            print(self.ser.readline())
         #test and report fails only        
-    def save_report(self):
+    def save_network(self):
         self.ser.write(enc('CAB:FILE:SAVE\n'))
-        #save report to board        
-    def load_report(self):
+        return(self.ser.readline())
+        #saves network profile to board     
+    def load_network(self):
         self.ser.write(enc('CAB:FILE:LOAD\n'))
         return(self.ser.readline())
-        #load saved report from board
+        #load saved profile from board
         

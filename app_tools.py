@@ -58,13 +58,13 @@ def defaults(app, net_select):
 def display(app, *args):
     for arg in args:
         app.text_view.get_buffer().insert(app.text_view.get_buffer().get_end_iter(),  "\n" + str(arg))
-    app.text_view.get_buffer().insert(app.text_view.get_buffer().get_end_iter(), "\n")
+
         
 def displayl(app, *args):
     for arg in args:
         for i in range(len(arg)):
             app.text_view.get_buffer().insert(app.text_view.get_buffer().get_end_iter(),  "\n" + str(arg[i]))
-    app.text_view.get_buffer().insert(app.text_view.get_buffer().get_end_iter(), "\n")
+
 
                 
       
