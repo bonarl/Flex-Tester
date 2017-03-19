@@ -19,7 +19,6 @@ from board_functions import *
 from app_tools import *
 import sqlite3 as lite
 import datetime
-import serial
 import pickle
 
 
@@ -92,11 +91,11 @@ class MyApp(object):
         # Connect signals
         self.builder.connect_signals(self)
 
-        # Everything is ready
+        # open gui
         self.window.show()
     
 
-        #connect to microcontroller
+        #connect to microcontroller if present (defaults to last connected com port)
         try:
             ports = listSerialPorts()
             if len(ports) > 1:
@@ -113,11 +112,13 @@ class MyApp(object):
         Gtk.main_quit()
         
     def autoscroll(self, *args):
-        """The actual scrolling method"""
+        #scrolling method for text display window
         adj = self.scrolled_window.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
         
     def test(self, test_button):
+        #run a quick test of tape and display scan (need to specify number of connectors, 
+        #optional to compare with network to view errors)
         start = time.time()
         display(self, '\n')
         connectors_entry = self.builder.get_object("connectors_entry")
@@ -125,23 +126,33 @@ class MyApp(object):
         tree_iter = self.net_combo.get_active_iter()
         model = self.net_combo.get_model()
         row_id, name = model[tree_iter][:2]
-        connectors = Gtk.Entry.get_text(connectors_entry)
-        pins = Gtk.Entry.get_text(pins_entry)  
+         
         default_errors = defaults(self, 'yep')
-        if default_errors[4] == 0:
+        if default_errors[4] == 0 and name == 'Select Tape Network ID':
             display(self, 'Enter number of connectors and pins to quick test')
-        else:
-            display(self, "Netname = %s" % (name))
+        else:         
+            test = 0
+            if name == 'Select Tape Network ID':
+                connectors = Gtk.Entry.get_text(connectors_entry)
+                pins = Gtk.Entry.get_text(pins_entry) 
+            else:
+                display(self, "Netname = %s" % (name))   
+                self.c.execute('SELECT network FROM networks WHERE id=?', (name,))        
+                db_net = pickle.loads(self.c.fetchall()[0][0])
+                self.c.execute('SELECT no_pins FROM networks WHERE id=?', (name,))
+                pins = self.c.fetchone()[0]
+                self.c.execute('SELECT no_connectors FROM networks WHERE id=?', (name,))
+                connectors = self.c.fetchone()[0]
+                test = 1
+                print(test)               
             self.board.set_connectors(connectors)
             self.board.set_pins(pins)
             scan = self.board.scan_results()
             displayl(self,scan)
-            self.c.execute('SELECT network FROM networks WHERE id=?', (name,))        
-            db_net = pickle.loads(self.c.fetchall()[0][0])
-            
-            if scan != db_net:
+            if scan != db_net and test == 1:
                 display(self,'errors found')
-            else:
+                ##############display errors#######################################################################################
+            elif scan == db_net and test == 1:
                 display(self,'no errors found')
             #get results
             #compare with stored net
@@ -173,7 +184,7 @@ class MyApp(object):
             if self.c.fetchone()[0]==1:
                 display(self,'network already found with name  %s'%(net_ID))      
             else:        
-                #update board with pi/connector info and scan
+                #update board with pin/connector info and scan
                 self.board.set_connectors(connectors)
                 self.board.set_pins(pins)
                 network = self.board.scan_results()
@@ -203,29 +214,59 @@ class MyApp(object):
         tape_ID = Gtk.Entry.get_text(tape_ID_entry)
         user_ID = Gtk.Entry.get_text(user_ID_entry)
         timestamp = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-        default_errors = defaults(self, net_ID)
+        
         #first check all required info has been added to save
+        default_errors = defaults(self, net_ID)
+        
+        error_list = []
         if default_errors[3] == 0:      
-            displayl(self,default_errors[1])
+            displayl(self,default_errors[1])         
         else:
-            scan = self.board.scan_results() 
-            displayl(self,scan)       
-            #get errors by comparing scan with net scan in database
-            self.c.execute('SELECT network FROM networks WHERE id=?', (net_ID,))        
-            db_net = pickle.loads(self.c.fetchall()[0][0])
+            if net_ID != 'Select Tape Network ID':
+
+                self.c.execute('SELECT no_pins FROM networks WHERE id=?', (net_ID,))
+                pins = self.c.fetchone()[0]
+                self.c.execute('SELECT no_connectors FROM networks WHERE id=?', (net_ID,))
+                connectors = self.c.fetchone()[0]
+                self.board.set_connectors(connectors)
+                self.board.set_pins(pins)
+
+                scan = self.board.scan_results() 
+                displayl(self, scan)       
+                #get errors by comparing scan with net scan in database
+                self.c.execute('SELECT network FROM networks WHERE id=?', (net_ID,))        
+                db_net = pickle.loads(self.c.fetchall()[0][0])
+
+            else:
+                display(self, 'Select a network to test against')
             
             if scan != db_net:
                 display(self,'errors found')
-                errors = 'no'
+                
+                for i in range(len(db_net)):
+                    stored_entry = db_net[i]
+                    try:
+                        scanned = scan[i]
+                    except:
+                        scanned = 'incorrect number of entries'
+                    if scanned != stored_entry:
+                        error_list.append('stored %s but scanned %s' & (stored_entry, scanned))
+                
+                    
+                ########display errors and add to table############################################################################
             else:
                 display(self,'no errors found')
-                errors = 'yes'
+                error_list[0] = 'No Errors'
             #create a table for tape ID in database if there isnt one already and insert dated test results as row in database
-            self.c.execute("CREATE TABLE IF NOT EXISTS [" +str(tape_ID)+ "](timestamp TEXT, user TEXT, network TEXT, errors TEXT, scan BLOB)")
+            self.c.execute("CREATE TABLE IF NOT EXISTS [" +str(tape_ID)+ "](timestamp TEXT, user TEXT, network TEXT, errors TEXT, scan BLOB, error_list BLOB)")
             
-            self.c.execute('INSERT INTO ['+str(tape_ID)+'](timestamp, user, network, errors, scan) VALUES(?,?,?,?,?)',(timestamp, user_ID, net_ID, errors, pickle.dumps(scan)))
+            self.c.execute('INSERT INTO ['+str(tape_ID)+'](timestamp, user, network, errors, scan, error_list) VALUES(?,?,?,?,?)',(timestamp, user_ID, net_ID, error, pickle.dumps(scan), pickle.dumps(error_list)))
             self.db.commit()
             display(self,tape_ID)
+            
+            
+
+       
         
         
     def reconnect(self, reconnect_button):
@@ -253,9 +294,12 @@ class MyApp(object):
         open_entry = self.builder.get_object('open_entry')
         filename = Gtk.Entry.get_text(open_entry)
         try:
-            self.c.execute('SELECT timestamp, user, network, errors FROM [' +str(filename)+ ']')
-            display(self, 'Timestamp                     |User   |Net      |Passed   ')
-            displayl(self, self.c.fetchall())
+            self.c.execute('SELECT timestamp, user, network, errors, error_list FROM [' +str(filename)+ ']')
+            display(self, 'Timestamp                     |User   |Net      |Passed   |Errors')
+            data = self.c.fetchall()
+            errors = data[4]
+            data[4] = pickle.loads(errors)
+            displayl(self, data)
         except:
             display(self, 'No results found in database for tape ID given')
             
