@@ -8,6 +8,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 import time
+import re
 
 
 def defaults(app, net_select):
@@ -68,9 +69,88 @@ def displayl(app, *args):
         for i in range(len(arg)):
             app.text_view.get_buffer().insert(app.text_view.get_buffer().get_end_iter(),  "\n" + str(arg[i]))
 
+scan = ['', '', 'PORT 0 PIN 1 -> PORT 0 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 1 PIN 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 3 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 5 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 7 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 9 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 11 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 13 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 15 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 17 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 19 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 21 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 23 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 25 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 27 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 29 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 31 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 33 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 35 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 37 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 39 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 41 PIN 1 2 3 4 5 6 7 8', 'PORT 1 PIN 1 -> PORT 43 PIN 1 2 3 4 5 6 7 8', 'PORT 2 PIN 1 -> PORT 2 PIN 1 2 3 4 5 6 7 8', 'PORT 4 PIN 1 -> PORT 4 PIN 1 2 3 4 5 6 7 8', 'PORT 6 PIN 1 -> PORT 6 PIN 1 2 3 4 5 6 7 8', 'PORT 8 PIN 1 -> PORT 8 PIN 1 2 3 4 5 6 7 8', 'PORT 10 PIN 1 -> PORT 10 PIN 1 2 3 4 5 6 7 8', 'PORT 12 PIN 1 -> PORT 12 PIN 1 2 3 4 5 6 7 8', 'PORT 14 PIN 1 -> PORT 14 PIN 1 2 3 4 5 6 7 8', 'PORT 16 PIN 1 -> PORT 16 PIN 1 2 3 4 5 6 7 8', 'PORT 18 PIN 1 -> PORT 18 PIN 1 2 3 4 5 6 7 8', 'PORT 20 PIN 1 -> PORT 20 PIN 1 2 3 4 5 6 7 8', 'PORT 22 PIN 1 -> PORT 22 PIN 1 2 3 4 5 6 7 8', 'PORT 24 PIN 1 -> PORT 24 PIN 1 2 3 4 5 6 7 8', 'PORT 26 PIN 1 -> PORT 26 PIN 1 2 3 4 5 6 7 8', 'PORT 28 PIN 1 -> PORT 28 PIN 1 2 3 4 5 6 7 8', 'PORT 30 PIN 1 -> PORT 30 PIN 1 2 3 4 5 6 7 8', 'PORT 32 PIN 1 -> PORT 32 PIN 1 2 3 4 5 6 7 8', 'PORT 34 PIN 1 -> PORT 34 PIN 1 2 3 4 5 6 7 8', 'PORT 36 PIN 1 -> PORT 36 PIN 1 2 3 4 5 6 7 8', 'PORT 38 PIN 1 -> PORT 38 PIN 1 2 3 4 5 6 7 8', 'PORT 40 PIN 1 -> PORT 40 PIN 1 2 3 4 5 6 7 8', 'PORT 42 PIN 1 -> PORT 42 PIN 1 2 3 4 5 6 7 8', 'PORT 44 PIN 1 -> PORT 44 PIN 1 2 3 4 5 6 7 8']
+
+saved = ['', '', 'PORT 0 PIN 1 -> PORT 0 PIN 2 3 4 5', 'PORT 0 PIN 1 -> PORT 4 PIN 4 5 6 7 8', 'PORT 0 PIN 1 -> PORT 26 PIN 2 3 4 5 6', 'PORT 0 PIN 1 -> PORT 28 PIN 3 4 5 6 7', 'PORT 0 PIN 6 -> PORT 5 PIN 6', 'PORT 0 PIN 6 -> PORT 10 PIN 6', 'PORT 0 PIN 6 -> PORT 15 PIN 6', 'PORT 0 PIN 6 -> PORT 20 PIN 6', 'PORT 0 PIN 6 -> PORT 25 PIN 6', 'PORT 0 PIN 6 -> PORT 30 PIN 3', 'PORT 0 PIN 6 -> PORT 37 PIN 1', 'PORT 0 PIN 6 -> PORT 42 PIN 3', 'PORT 0 PIN 7 -> PORT 5 PIN 7', 'PORT 0 PIN 7 -> PORT 10 PIN 7', 'PORT 0 PIN 7 -> PORT 15 PIN 7', 'PORT 0 PIN 7 -> PORT 20 PIN 7', 'PORT 0 PIN 7 -> PORT 25 PIN 7', 'PORT 0 PIN 7 -> PORT 30 PIN 4', 'PORT 0 PIN 7 -> PORT 37 PIN 2', 'PORT 0 PIN 7 -> PORT 42 PIN 4', 'PORT 0 PIN 8 -> PORT 39 PIN 1', 'PORT 1 PIN 1 -> PORT 39 PIN 2', 'PORT 1 PIN 2 -> PORT 1 PIN 3 4 5 6', 'PORT 1 PIN 2 -> PORT 3 PIN 3 4 5 6 7', 'PORT 1 PIN 2 -> PORT 5 PIN 1 2 3 4 5', 'PORT 1 PIN 2 -> PORT 9 PIN 4 5 6 7 8', 'PORT 1 PIN 7 -> PORT 3 PIN 2', 'PORT 1 PIN 7 -> PORT 6 PIN 7', 'PORT 1 PIN 7 -> PORT 8 PIN 2', 'PORT 1 PIN 7 -> PORT 11 PIN 7', 'PORT 1 PIN 7 -> PORT 13 PIN 2', 'PORT 1 PIN 7 -> PORT 16 PIN 7', 'PORT 1 PIN 7 -> PORT 18 PIN 2', 'PORT 1 PIN 7 -> PORT 21 PIN 7', 'PORT 1 PIN 7 -> PORT 23 PIN 2', 'PORT 1 PIN 7 -> PORT 26 PIN 7', 'PORT 1 PIN 7 -> PORT 28 PIN 2', 'PORT 1 PIN 7 -> PORT 31 PIN 4', 'PORT 1 PIN 7 -> PORT 33 PIN 5', 'PORT 1 PIN 8 -> PORT 3 PIN 1', 'PORT 1 PIN 8 -> PORT 6 PIN 8', 'PORT 1 PIN 8 -> PORT 8 PIN 1', 'PORT 1 PIN 8 -> PORT 11 PIN 8', 'PORT 1 PIN 8 -> PORT 13 PIN 1', 'PORT 1 PIN 8 -> PORT 16 PIN 8', 'PORT 1 PIN 8 -> PORT 18 PIN 1', 'PORT 1 PIN 8 -> PORT 21 PIN 8', 'PORT 1 PIN 8 -> PORT 23 PIN 1', 'PORT 1 PIN 8 -> PORT 26 PIN 8', 'PORT 1 PIN 8 -> PORT 28 PIN 1', 'PORT 1 PIN 8 -> PORT 31 PIN 5', 'PORT 1 PIN 8 -> PORT 33 PIN 4', 'PORT 2 PIN 4 -> PORT 2 PIN 5', 'PORT 2 PIN 4 -> PORT 7 PIN 4 5', 'PORT 2 PIN 4 -> PORT 12 PIN 4 5', 'PORT 2 PIN 4 -> PORT 17 PIN 4 5', 'PORT 2 PIN 4 -> PORT 22 PIN 4 5', 'PORT 2 PIN 4 -> PORT 27 PIN 4 5', 'PORT 2 PIN 4 -> PORT 32 PIN 4 5', 'PORT 3 PIN 8 -> PORT 38 PIN 8', 'PORT 4 PIN 1 -> PORT 38 PIN 7', 'PORT 4 PIN 2 -> PORT 9 PIN 2', 'PORT 4 PIN 2 -> PORT 14 PIN 2', 'PORT 4 PIN 2 -> PORT 19 PIN 2', 'PORT 4 PIN 2 -> PORT 24 PIN 2', 'PORT 4 PIN 2 -> PORT 29 PIN 2', 'PORT 4 PIN 2 -> PORT 30 PIN 2', 'PORT 4 PIN 2 -> PORT 35 PIN 4', 'PORT 4 PIN 2 -> PORT 42 PIN 2', 'PORT 4 PIN 3 -> PORT 9 PIN 3', 'PORT 4 PIN 3 -> PORT 14 PIN 3', 'PORT 4 PIN 3 -> PORT 19 PIN 3', 'PORT 4 PIN 3 -> PORT 24 PIN 3', 'PORT 4 PIN 3 -> PORT 29 PIN 3', 'PORT 4 PIN 3 -> PORT 30 PIN 1', 'PORT 4 PIN 3 -> PORT 35 PIN 3', 'PORT 4 PIN 3 -> PORT 42 PIN 1', 'PORT 5 PIN 8 -> PORT 39 PIN 5', 'PORT 6 PIN 1 -> PORT 39 PIN 6', 'PORT 6 PIN 2 -> PORT 6 PIN 3 4 5 6', 'PORT 6 PIN 2 -> PORT 8 PIN 3 4 5 6 7', 'PORT 6 PIN 2 -> PORT 10 PIN 1 2 3 4 5', 'PORT 6 PIN 2 -> PORT 14 PIN 4 5 6 7 8', 'PORT 8 PIN 8 -> PORT 39 PIN 4', 'PORT 9 PIN 1 -> PORT 39 PIN 3', 'PORT 10 PIN 8 -> PORT 35 PIN 1', 'PORT 11 PIN 1 -> PORT 35 PIN 2', 'PORT 11 PIN 2 -> PORT 11 PIN 3 4 5 6', 'PORT 11 PIN 2 -> PORT 13 PIN 3 4 5 6 7', 'PORT 11 PIN 2 -> PORT 15 PIN 1 2 3 4 5', 'PORT 11 PIN 2 -> PORT 19 PIN 4 5 6 7 8', 'PORT 13 PIN 8 -> PORT 39 PIN 8', 'PORT 14 PIN 1 -> PORT 39 PIN 7', 'PORT 15 PIN 8 -> PORT 37 PIN 5', 'PORT 16 PIN 1 -> PORT 37 PIN 6', 'PORT 16 PIN 2 -> PORT 16 PIN 3 4 5 6', 'PORT 16 PIN 2 -> PORT 18 PIN 3 4 5 6 7', 'PORT 16 PIN 2 -> PORT 40 PIN 1 2 3 4 5', 'PORT 16 PIN 2 -> PORT 44 PIN 4 5 6 7 8', 'PORT 18 PIN 8 -> PORT 37 PIN 4', 'PORT 19 PIN 1 -> PORT 37 PIN 3', 'PORT 20 PIN 1 -> PORT 20 PIN 2 3 4 5', 'PORT 20 PIN 1 -> PORT 24 PIN 4 5 6 7 8', 'PORT 20 PIN 1 -> PORT 40 PIN 6 7 8', 'PORT 20 PIN 1 -> PORT 41 PIN 1 2', 'PORT 20 PIN 1 -> PORT 43 PIN 7 8', 'PORT 20 PIN 1 -> PORT 44 PIN 1 2 3', 'PORT 20 PIN 8 -> PORT 38 PIN 1', 'PORT 21 PIN 1 -> PORT 38 PIN 2', 'PORT 21 PIN 2 -> PORT 21 PIN 3 4 5 6', 'PORT 21 PIN 2 -> PORT 23 PIN 3 4 5 6 7', 'PORT 21 PIN 2 -> PORT 25 PIN 1 2 3 4 5', 'PORT 21 PIN 2 -> PORT 29 PIN 4 5 6 7 8', 'PORT 23 PIN 8 -> PORT 37 PIN 8', 'PORT 24 PIN 1 -> PORT 37 PIN 7', 'PORT 25 PIN 8 -> PORT 38 PIN 5', 'PORT 26 PIN 1 -> PORT 38 PIN 6', 'PORT 28 PIN 8 -> PORT 38 PIN 4', 'PORT 29 PIN 1 -> PORT 38 PIN 3', 'PORT 34 PIN 7 -> PORT 34 PIN 8', 'PORT 34 PIN 7 -> PORT 35 PIN 5 6 7 8', 'PORT 34 PIN 7 -> PORT 36 PIN 1 2 3 4 5 6 7 8', 'PORT 34 PIN 7 -> PORT 42 PIN 5 6']
 
                 
-      
+def check(scan, saved):
+    scan_ints = []
+    saved_ints = []
+    errors = []
+    scan_ports = []
+    save_ports = []
+    for i in range(len(scan)):
+        scan_list = []
+        for entry in scan[i].split():
+            try:
+                scan_list.append(int(entry))
+            except:
+                pass 
+        if len(scan_list) > 2:
+            scan_ints.append(scan_list)
+    for i in range(len(saved)):
+        save_list = []
+        for entry in saved[i].split():
+            try:
+                save_list.append(int(entry))
+            except: 
+                pass
+        if len(save_list) > 2:
+            saved_ints.append(save_list)  
+    
+    for i in range(len(scan_ints)):
+        for j in range(len(saved_ints)):
+            scan_send_port = scan_ints[i][0]
+            scan_send_pin = scan_ints[i][1]
+            save_send_port = saved_ints[j][0]
+            save_send_pin = saved_ints[j][1]
+            scan_list = scan_ints[i]
+            save_list = saved_ints[j]
+            scan_ports.append(scan_send_port)
+            save_ports.append(save_send_port)
+            if scan_send_port == save_send_port and scan_send_pin == save_send_pin and scan_list != save_list:
+                scan_receive_port = scan_list[2]
+                
+                save_receive_port = save_list[2]
+                scan_list1 = []
+                save_list1 = []
+                for x in range(3,len(save_list)):
+                    save_list1.append(save_list[x])
+                for y in range(3,len(scan_list)):
+                    scan_list1.append(scan_list[y])
+                for pin in save_list1:
+                    if pin not in scan_list1:
+                        errors.append('PORT %s PIN %s does not connect to PORT %s PIN %s' % (scan_send_port, scan_send_pin, scan_receive_port, pin))
+                for pin in scan_list1:
+                    if pin not in save_list1:
+                        errors.append('PORT %s PIN %s connects to PORT %s PIN %s' % (scan_send_port, scan_send_pin, scan_receive_port, pin))
+    save_set = set(save_ports)
+    scan_set = set(scan_ports)
+    for port in save_set:
+        if port not in scan_set:
+            errors.append('No connections found for port %s' %(port))
+    for port in scan_set:
+        if port not in save_set:
+            errors.append('Connections found for port %s' %(port))
+            
+    return(errors)
+                
+                    
+                
+
+                                
+                
+                
+                
+
+                
+                
+                
+    
+print(check(scan, saved))
+
+        
 
     
 

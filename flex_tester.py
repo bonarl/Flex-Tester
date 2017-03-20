@@ -119,7 +119,6 @@ class MyApp(object):
     def test(self, test_button):
         #run a quick test of tape and display scan (need to specify number of connectors, 
         #optional to compare with network to view errors)
-        start = time.time()
         display(self, '\n')
         connectors_entry = self.builder.get_object("connectors_entry")
         pins_entry = self.builder.get_object("pins_entry")
@@ -129,7 +128,7 @@ class MyApp(object):
          
         default_errors = defaults(self, 'yep')
         if default_errors[4] == 0 and name == 'Select Tape Network ID':
-            display(self, 'Enter number of connectors and pins to quick test')
+            display(self, 'Enter number of connectors and pins or select stored network to quick test')
         else:         
             test = 0
             if name == 'Select Tape Network ID':
@@ -143,21 +142,20 @@ class MyApp(object):
                 pins = self.c.fetchone()[0]
                 self.c.execute('SELECT no_connectors FROM networks WHERE id=?', (name,))
                 connectors = self.c.fetchone()[0]
-                test = 1
-                print(test)               
+                test = 1              
             self.board.set_connectors(connectors)
             self.board.set_pins(pins)
+            
             scan = self.board.scan_results()
             displayl(self,scan)
             if scan != db_net and test == 1:
-                display(self,'errors found')
-                ##############display errors#######################################################################################
+                display(self, 'errors found')
+                displayl(self, check(scan, db_net))
             elif scan == db_net and test == 1:
                 display(self,'no errors found')
-            #get results
-            #compare with stored net
-            #display results in info box
-            display(self, (time.time() - start))
+            
+
+            
         
     def learn(self, learn_button):
         display(self, '\n')
@@ -242,27 +240,27 @@ class MyApp(object):
             
             if scan != db_net:
                 display(self,'errors found')
-                
-                for i in range(len(db_net)):
-                    stored_entry = db_net[i]
-                    try:
-                        scanned = scan[i]
-                    except:
-                        scanned = 'incorrect number of entries'
-                    if scanned != stored_entry:
-                        error_list.append('stored %s but scanned %s' & (stored_entry, scanned))
+                error = 'Failed'
+                displayl(self, check(scan, db_net))
+                error_list = check(scan, db_net)
                 
                     
                 ########display errors and add to table############################################################################
             else:
                 display(self,'no errors found')
-                error_list[0] = 'No Errors'
+                error_list.append('No Errors')
+                error = 'Passed'
             #create a table for tape ID in database if there isnt one already and insert dated test results as row in database
-            self.c.execute("CREATE TABLE IF NOT EXISTS [" +str(tape_ID)+ "](timestamp TEXT, user TEXT, network TEXT, errors TEXT, scan BLOB, error_list BLOB)")
-            
-            self.c.execute('INSERT INTO ['+str(tape_ID)+'](timestamp, user, network, errors, scan, error_list) VALUES(?,?,?,?,?)',(timestamp, user_ID, net_ID, error, pickle.dumps(scan), pickle.dumps(error_list)))
+            self.c.execute("CREATE TABLE IF NOT EXISTS [" +str(tape_ID)+ "](timestamp TEXT, user TEXT, network TEXT, errors TEXT, scan BLOB, errorlist BLOB)")
+            try:
+
+                self.c.execute('INSERT INTO [' +str(tape_ID)+ '](timestamp, user, network, errors, scan, errorlist) VALUES(?,?,?,?,?,?)',(timestamp, user_ID, net_ID, error, pickle.dumps(scan), pickle.dumps(error_list)))
+                display(self, 'added to database')
+            except:
+                pass
             self.db.commit()
             display(self,tape_ID)
+            
             
             
 
@@ -294,12 +292,14 @@ class MyApp(object):
         open_entry = self.builder.get_object('open_entry')
         filename = Gtk.Entry.get_text(open_entry)
         try:
-            self.c.execute('SELECT timestamp, user, network, errors, error_list FROM [' +str(filename)+ ']')
-            display(self, 'Timestamp                     |User   |Net      |Passed   |Errors')
+            self.c.execute('SELECT timestamp, user, network, errors, errorlist FROM [' +str(filename)+ ']')
+            display(self, 'Timestamp                        |User            |Net              |Passed             |Errors')
             data = self.c.fetchall()
-            errors = data[4]
-            data[4] = pickle.loads(errors)
-            displayl(self, data)
+            for i in range(len(data)):
+                errors = pickle.loads(data[i][4])
+                print(errors)
+                display(self, ''+data[i][0]+'        '+data[i][1]+'            '+data[i][2]+'             '+data[i][3]+'             '+str(errors)+'')
+
         except:
             display(self, 'No results found in database for tape ID given')
             
@@ -311,7 +311,6 @@ class MyApp(object):
         try:
             self.c.execute('SELECT network FROM networks WHERE id=?', (netname,))
             string_net = self.c.fetchall()
-            print(pickle.loads(string_net[0][0]))
             displayl(self, pickle.loads(string_net[0][0]))
         except:
             pass
