@@ -8,15 +8,10 @@ class Del:
     self.comp = dict((ord(c),c) for c in keep)
   def __getitem__(self, k):
     return self.comp.get(k)
-
 DD = Del()
-
-x='aaa12333bb445bb54b5b52'
-x.translate(DD)
 
 def listSerialPorts():
     """ Lists serial port names
-
         :raises EnvironmentError:
             On unsupported or unknown platforms
         :returns:
@@ -41,9 +36,7 @@ def listSerialPorts():
         except (OSError, serial.SerialException):
             pass
     return result
-    
-
-    
+        
 def enc(string):
     return(string.encode())
 
@@ -55,8 +48,6 @@ class expander():
         self.ser.write(enc('INIT\n'))
         self.ser.write(enc('*CLS\n'))
         self.ser.flush()
-        
-             
     def clear(self): 
         self.ser.write(enc('*CLS\n'))  
         return(self.ser.readline())
@@ -84,8 +75,7 @@ class expander():
         cons = int(cons_string.translate(DD))
         for j in range(cons):
             self.ser.write(enc('CAB:PINS:J%s %s \n' % (j+1, pins)))
-        return(self.ser.readline())
-            
+        return(self.ser.readline())          
         #set number of pins on board
     def ask_pins(self):
         self.ser.write(enc('CAB:PINS?\n'))
@@ -115,7 +105,6 @@ class expander():
                 working = False
         return(results)
         #scans and returns connections table        
-
     def test(self):
         self.ser.write(enc('CAB:TEST:RUN\n')) 
         while True:
